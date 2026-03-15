@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Simple Weather App</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="input-group">
+                <div class="input-field">
+                    <label for="name-input">Name:</label>
+                    <input type="text" id="name-input" maxlength="12" placeholder="Home">
+                </div>
+                <div class="input-field">
+                    <label for="zip-input">Zip:</label>
+                    <input type="text" id="zip-input" maxlength="5" pattern="\d*" inputmode="numeric" placeholder="12345">
+                </div>
+                <button id="add-btn">+</button>
+            </div>
+        </header>
+
+        <nav id="tab-bar" class="tab-bar">
+            <!-- Tabs will be injected here -->
+        </nav>
+
+        <main class="weather-content">
+            <div id="empty-state" class="empty-state">
+                <p>Add a Zip code above to get started.</p>
+            </div>
+            <div id="weather-card-container">
+                <!-- Active Card will be injected here -->
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

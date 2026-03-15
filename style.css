@@ -1,0 +1,247 @@
+:root {
+    --bg-color: #f0f4f8;
+    --card-bg: #ffffff;
+    --text-main: #2d3748;
+    --text-muted: #718096;
+    --accent: #4299e1;
+    --danger: #e53e3e;
+    --high: #d32f2f;
+    --low: #1976d2;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --radius: 12px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+.app-container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 20px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    margin-bottom: 20px;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    background: var(--card-bg);
+    padding: 15px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.input-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.input-field label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.input-field input {
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 1rem;
+    outline: none;
+}
+
+.input-field input:focus {
+    border-color: var(--accent);
+}
+
+#name-input { width: 100px; }
+#zip-input { width: 70px; }
+
+#add-btn {
+    background-color: var(--accent);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#add-btn:active {
+    transform: scale(0.9);
+}
+
+/* Tab Bar */
+.tab-bar {
+    display: flex;
+    overflow-x: auto;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding-bottom: 5px;
+    scrollbar-width: none; /* Hide scrollbar for Firefox */
+}
+
+.tab-bar::-webkit-scrollbar {
+    display: none; /* Hide scrollbar for Chrome/Safari */
+}
+
+.tab {
+    padding: 8px 16px;
+    background: #e2e8f0;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    color: var(--text-muted);
+}
+
+.tab.active {
+    background: var(--accent);
+    color: white;
+}
+
+/* Weather Card */
+.weather-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 25px;
+    box-shadow: var(--shadow);
+    text-align: center;
+    position: relative;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.remove-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.location-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.location-sub {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+}
+
+.current-weather {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.current-temp {
+    font-size: 3rem;
+    font-weight: 700;
+}
+
+.current-icon {
+    font-size: 2.5rem;
+    width: 1.2em; /* Fixed width for centering */
+}
+
+.current-condition {
+    font-size: 1rem;
+    color: var(--text-main);
+    width: 200px;
+    margin: 0 auto;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 20px;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid #edf2f7;
+    margin-bottom: 20px;
+}
+
+/* Forecast List */
+.forecast-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.forecast-row {
+    display: grid;
+    grid-template-columns: 60px 40px 1fr 1fr;
+    align-items: center;
+    text-align: left;
+}
+
+.day-name {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.forecast-icon {
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+.temp-item {
+    font-size: 0.9rem;
+    font-weight: 700;
+    display: flex;
+    gap: 4px;
+    justify-content: flex-end;
+}
+
+.temp-item.high { color: var(--high); }
+.temp-item.low { color: var(--low); }
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    color: var(--text-muted);
+    margin-top: 50px;
+    padding: 40px;
+    background: rgba(255,255,255,0.5);
+    border-radius: var(--radius);
+    border: 2px dashed #cbd5e0;
+}
