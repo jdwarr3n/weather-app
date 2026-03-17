@@ -3,6 +3,7 @@ import requests
 import tkinter as tk
 from tkinter import ttk, messagebox
 
+
 def get_coordinates(zip_code):
     """
     Uses the free Nominatim (OpenStreetMap) API to get latitude and longitude.
@@ -146,6 +147,27 @@ def get_nws_weather(lat, lon):
                 # Occurs if we hit a weird sequence, try moving to next
                 i += 1
 
+        # Step 4: Extract 32-hour Hourly Forecast
+        hourly_periods = hourly_data['properties']['periods'][:32]
+        forecast_hourly = []
+        for p in hourly_periods:
+            time_obj = p['startTime'].split('T')[1][:5] # Get HH:MM
+            # Convert 24h to 12h format
+            hour = int(time_obj.split(':')[0])
+            ampm = "A" if hour < 12 else "P"
+            display_hour = hour % 12
+            if display_hour == 0: display_hour = 12
+            
+            forecast_hourly.append({
+                "time": f"{display_hour}{ampm}",
+                "temp": f"{p['temperature']}°",
+                "rain": f"{p['probabilityOfPrecipitation'].get('value', 0)}%",
+                "wind": f"{p['windSpeed']} {p['windDirection']}",
+                "summary": p['shortForecast'],
+                "raw_temp": p['temperature'],
+                "raw_rain": p['probabilityOfPrecipitation'].get('value') if p['probabilityOfPrecipitation'].get('value') is not None else 0
+            })
+
         # Get the specific location name (City, State)
         location_name = f"{points_data['properties']['relativeLocation']['properties']['city']}, {points_data['properties']['relativeLocation']['properties']['state']}"
 
@@ -157,7 +179,8 @@ def get_nws_weather(lat, lon):
             "icon": icon,
             "high": f"{today_high}°{current_unit}" if today_high != "N/A" else "N/A",
             "low": f"{today_low}°{current_unit}" if today_low != "N/A" else "N/A",
-            "forecast_3day": forecast_3day
+            "forecast_3day": forecast_3day,
+            "forecast_hourly": forecast_hourly
         }
         
     except requests.exceptions.RequestException as e:
@@ -274,6 +297,20 @@ class WeatherApp:
         self.added_zips = [z for z in self.added_zips if z[0] != zip_code]
         self.save_zips()
 
+    def toggle_forecast(self, state_dict, daily_frame, hourly_frame, toggle_btn, current_weather_frame, main_container):
+        if state_dict["mode"] == "D":
+            state_dict["mode"] = "H"
+            current_weather_frame.pack_forget()
+            daily_frame.pack_forget()
+            hourly_frame.pack(anchor="center")
+            toggle_btn.config(text="D")
+        else:
+            state_dict["mode"] = "D"
+            hourly_frame.pack_forget()
+            current_weather_frame.pack(fill=tk.X, before=main_container)
+            daily_frame.pack(anchor="center")
+            toggle_btn.config(text="H")
+
     def create_card_ui(self, zip_code, custom_name, data):
         # Tab Label uses custom name if provided, otherwise the zip code
         tab_base = custom_name if custom_name else zip_code
@@ -293,10 +330,22 @@ class WeatherApp:
         # Keep track for deletion/saving
         self.added_zips.append((zip_code, custom_name, card))
         
-        # Close Button
-        close_btn = tk.Button(card, text="✕", fg="gray", bg="white", bd=0, font=("Helvetica", 14, "bold"), 
-                              command=lambda: self.remove_card(card, zip_code))
-        close_btn.pack(anchor="ne")
+        # Header Container for Buttons
+        header_frame = tk.Frame(card, bg="white")
+        header_frame.pack(fill=tk.X)
+
+        # Toggle Button (Top Left)
+        toggle_frame = tk.Frame(header_frame, bg="white")
+        toggle_frame.pack(side=tk.LEFT)
+        
+        state_dict = {"mode": "D"}
+        toggle_btn = tk.Button(toggle_frame, text="H", bg="#e0e0e0", relief=tk.RAISED, width=2, font=("Helvetica", 10, "bold"))
+        toggle_btn.pack(side=tk.LEFT)
+
+        # Close Button (Top Right)
+        close_btn = tk.Button(header_frame, text="✕", fg="gray", bg="white", bd=0, font=("Helvetica", 14, "bold"), 
+                               command=lambda: self.remove_card(card, zip_code))
+        close_btn.pack(side=tk.RIGHT)
 
         # Location Name
         tk.Label(card, text=display_name, bg="white", font=("Helvetica", 16, "bold"), wraplength=350, justify="center").pack(pady=(5, 2))
@@ -309,8 +358,12 @@ class WeatherApp:
             
         tk.Label(card, text=subtext, bg="white", fg="gray", font=("Helvetica", 11)).pack(pady=(0, 15))
 
+        # Current Weather info (to hide in hourly view)
+        current_weather_frame = tk.Frame(card, bg="white")
+        current_weather_frame.pack(fill=tk.X)
+
         # Temp and Icon Container (to ensure absolute centering)
-        center_container = tk.Frame(card, bg="white")
+        center_container = tk.Frame(current_weather_frame, bg="white")
         center_container.pack(fill=tk.X, pady=(10, 5))
         
         # An inner frame that we center, which holds both the temp and icon
@@ -326,45 +379,93 @@ class WeatherApp:
         tk.Label(temp_frame, text=data['temp'], bg="white", font=("Helvetica", 36, "bold")).pack(side=tk.LEFT)
         
         # Current Condition (Centered)
-        tk.Label(card, text=data['condition'], bg="white", font=("Helvetica", 12)).pack(pady=(5, 0))
+        tk.Label(current_weather_frame, text=data['condition'], bg="white", font=("Helvetica", 12)).pack(pady=(5, 0))
         
         # Separator Line
-        ttk.Separator(card, orient='horizontal').pack(fill=tk.X, pady=15)
+        ttk.Separator(current_weather_frame, orient='horizontal').pack(fill=tk.X, pady=15)
 
-        # 3-Day Forecast Section (Always Visible, Aligned Columns)
-        # We wrap it in an inner frame so the grid can be centered easily
-        forecast_container = tk.Frame(card, bg="white")
-        forecast_container.pack(anchor="center")
-        
-        forecast_frame = tk.Frame(forecast_container, bg="white")
-        forecast_frame.pack()
+        # Forecast Containers
+        main_forecast_container = tk.Frame(card, bg="white")
+        main_forecast_container.pack(fill=tk.BOTH, expand=True)
+
+        # 3-Day Forecast Section (Daily)
+        daily_frame = tk.Frame(main_forecast_container, bg="white")
+        daily_frame.pack(anchor="center")
         
         # Configure columns for grid
-        forecast_frame.columnconfigure(0, weight=1, minsize=60)  # Day
-        forecast_frame.columnconfigure(1, minsize=40)  # Icon
-        forecast_frame.columnconfigure(2, minsize=80)  # High
-        forecast_frame.columnconfigure(3, minsize=80)  # Low
+        daily_frame.columnconfigure(0, weight=1, minsize=60)  # Day
+        daily_frame.columnconfigure(1, minsize=40)  # Icon
+        daily_frame.columnconfigure(2, minsize=80)  # High
+        daily_frame.columnconfigure(3, minsize=80)  # Low
         
         # Create forecast rows
         for row_idx, day in enumerate(data.get('forecast_3day', [])):
             # Day name
-            tk.Label(forecast_frame, text=day['name'], bg="white", font=("Helvetica", 12, "bold"), anchor="w").grid(row=row_idx, column=0, sticky="w", pady=4)
+            tk.Label(daily_frame, text=day['name'], bg="white", font=("Helvetica", 12, "bold"), anchor="w").grid(row=row_idx, column=0, sticky="w", pady=4)
             
             # Icon
             icon = get_emoji(day['condition'])
-            tk.Label(forecast_frame, text=icon, bg="white", font=("Helvetica", 14)).grid(row=row_idx, column=1, padx=5, pady=4)
+            tk.Label(daily_frame, text=icon, bg="white", font=("Helvetica", 14)).grid(row=row_idx, column=1, padx=5, pady=4)
             
             # High
-            high_frame = tk.Frame(forecast_frame, bg="white")
+            high_frame = tk.Frame(daily_frame, bg="white")
             high_frame.grid(row=row_idx, column=2, sticky="e", padx=(10, 5))
             tk.Label(high_frame, text="H:", bg="white", fg="#D32F2F", font=("Helvetica", 11, "bold")).pack(side=tk.LEFT)
             tk.Label(high_frame, text=day['high'], bg="white", font=("Helvetica", 11, "bold")).pack(side=tk.LEFT, padx=(2,0))
             
             # Low
-            low_frame = tk.Frame(forecast_frame, bg="white")
+            low_frame = tk.Frame(daily_frame, bg="white")
             low_frame.grid(row=row_idx, column=3, sticky="e", padx=(5, 0))
             tk.Label(low_frame, text="L:", bg="white", fg="#1976D2", font=("Helvetica", 11, "bold")).pack(side=tk.LEFT)
             tk.Label(low_frame, text=day['low'], bg="white", font=("Helvetica", 11, "bold")).pack(side=tk.LEFT, padx=(2,0))
+
+        # Hourly Forecast Section (Hidden by default)
+        hourly_frame = tk.Frame(main_forecast_container, bg="white")
+
+        # Configure 8 columns for the hourly grid to fit 32 hours
+        for c in range(8):
+            hourly_frame.columnconfigure(c, weight=1)
+
+        # Create 4 rows x 8 columns grid for 32 hours
+        # We need to make sure we extract 32 hours back on line 154 if we want 32 here, 
+        # but the API usually returns 156 hours so we just need to slice up to 32.
+        hourly_data = data.get('forecast_hourly', [])[:32]
+        
+        # Calculate max and min temps for the 32-hour slice
+        raw_temps = [d['raw_temp'] for d in hourly_data]
+        max_temp = max(raw_temps)
+        min_temp = min(raw_temps)
+        
+        for idx, h_data in enumerate(hourly_data):
+            # Calculate row, leaving spaces for separators
+            # Rows 0, 2, 4, 6 will be data. Rows 1, 3, 5 will be separators.
+            r = (idx // 8) * 2
+            c = idx % 8
+            
+            # Create a small frame for this hour's time and temp
+            cell_frame = tk.Frame(hourly_frame, bg="white")
+            cell_frame.grid(row=r, column=c, padx=0, pady=1) # Minimal pad
+            
+            # Time (e.g. 1P, 2A) - slightly bigger
+            tk.Label(cell_frame, text=h_data['time'], bg="white", fg="#555555", font=("Helvetica", 11)).pack(pady=0)
+            
+            # Determine color for temp
+            temp_color = "black"
+            if h_data['raw_temp'] == max_temp:
+                temp_color = "#D32F2F" # Red
+            elif h_data['raw_temp'] == min_temp:
+                temp_color = "#1976D2" # Blue
+                
+            # Temp (e.g. 72°) - slightly bigger
+            tk.Label(cell_frame, text=h_data['temp'], bg="white", fg=temp_color, font=("Helvetica", 12, "bold")).pack(pady=0)
+            
+            # Add a separator below this row if we're at the end of a row (and not the last row)
+            if c == 7 and r < 6:
+                sep = ttk.Separator(hourly_frame, orient="horizontal")
+                sep.grid(row=r+1, column=0, columnspan=8, sticky="ew", pady=2)
+
+        # Set button command for toggling
+        toggle_btn.config(command=lambda: self.toggle_forecast(state_dict, daily_frame, hourly_frame, toggle_btn, current_weather_frame, main_forecast_container))
 
 
 def main():

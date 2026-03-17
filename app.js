@@ -80,6 +80,19 @@ async function getWeatherData(lat, lon) {
             }
         }
 
+        const forecastHourly = hourlyData.properties.periods.slice(0, 32).map(p => {
+            const date = new Date(p.startTime);
+            let hour = date.getHours();
+            const ampm = hour >= 12 ? 'P' : 'A';
+            hour = hour % 12;
+            if (hour === 0) hour = 12;
+            return {
+                time: `${hour}${ampm}`,
+                temp: p.temperature,
+                condition: p.shortForecast
+            };
+        });
+
         const city = pointsData.properties.relativeLocation.properties.city;
         const stateCode = pointsData.properties.relativeLocation.properties.state;
 
@@ -91,7 +104,8 @@ async function getWeatherData(lat, lon) {
             icon: getEmoji(current.shortForecast),
             high: todayHigh,
             low: todayLow,
-            forecast3Day
+            forecast3Day,
+            forecastHourly
         };
     } catch (e) {
         console.error("Weather fetch error:", e);
@@ -166,38 +180,78 @@ function renderContent() {
 
     document.getElementById('empty-state').style.display = 'none';
     const data = activeLoc.weatherData;
+    const viewMode = activeLoc.viewMode || 'D';
 
     container.innerHTML = `
         <div class="weather-card">
-            <button class="remove-btn" onclick="removeLocation('${activeLoc.zip}')">✕</button>
+            <div class="card-header">
+                <button class="toggle-btn" onclick="toggleView('${activeLoc.zip}')">${viewMode === 'D' ? 'H' : 'D'}</button>
+                <button class="remove-btn" onclick="removeLocation('${activeLoc.zip}')">✕</button>
+            </div>
             
             <div class="location-name">${activeLoc.name || data.location}</div>
             <div class="location-sub">${activeLoc.name ? data.location + ' • ' : ''}${activeLoc.zip}</div>
             
-            <div class="current-weather">
-                <div class="current-temp">${data.temp}°</div>
-                <div class="current-icon">${data.icon}</div>
+            <div id="main-weather-section" style="${viewMode === 'H' ? 'display: none;' : ''}">
+                <div class="current-weather">
+                    <div class="current-icon">${data.icon}</div>
+                    <div class="current-temp">${data.temp}°</div>
+                </div>
+                <div class="current-condition">${data.condition}</div>
+                <hr>
             </div>
-            
-            <div class="current-condition">${data.condition}</div>
-            
-            <hr>
-            
-            <div class="forecast-list">
-                ${data.forecast3Day.map(day => `
-                    <div class="forecast-row">
-                        <div class="day-name">${day.name}</div>
-                        <div class="forecast-icon">${day.icon}</div>
-                        <div class="temp-item high">H: ${day.high}°</div>
-                        <div class="temp-item low">L: ${day.low}°</div>
+
+            <div class="view-container">
+                ${viewMode === 'D' ? `
+                    <div class="forecast-list fade-in">
+                        ${data.forecast3Day.map(day => `
+                            <div class="forecast-row">
+                                <div class="day-name">${day.name}</div>
+                                <div class="forecast-icon">${day.icon}</div>
+                                <div class="temp-item high"><span class="temp-label">H</span> ${day.high}°</div>
+                                <div class="temp-item low"><span class="temp-label">L</span> ${day.low}°</div>
+                            </div>
+                        `).join('')}
                     </div>
-                `).join('')}
+                ` : `
+                    <div class="hourly-view fade-in">
+                        <div class="hourly-grid-title">32-Hour Forecast</div>
+                        <div class="hourly-grid">
+                            ${(() => {
+                                const temps = data.forecastHourly.map(h => h.temp);
+                                const maxT = Math.max(...temps);
+                                const minT = Math.min(...temps);
+                                
+                                return data.forecastHourly.map(h => {
+                                    let colorClass = '';
+                                    if (h.temp === maxT) colorClass = 'temp-high';
+                                    else if (h.temp === minT) colorClass = 'temp-low';
+                                    
+                                    return `
+                                        <div class="hourly-cell">
+                                            <div class="hourly-time">${h.time}</div>
+                                            <div class="hourly-temp ${colorClass}">${h.temp}°</div>
+                                        </div>
+                                    `;
+                                }).join('');
+                            })()}
+                        </div>
+                    </div>
+                `}
             </div>
         </div>
     `;
 }
 
 // --- Actions ---
+
+function toggleView(zip) {
+    const loc = state.locations.find(l => l.zip === zip);
+    if (loc) {
+        loc.viewMode = (loc.viewMode === 'H' ? 'D' : 'H');
+        renderContent();
+    }
+}
 
 async function addLocation(zip, name, shouldSave = true) {
     if (state.locations.find(l => l.zip === zip)) return;
@@ -211,7 +265,7 @@ async function addLocation(zip, name, shouldSave = true) {
     const weatherData = await getWeatherData(coords.lat, coords.lon);
     if (!weatherData) return;
 
-    state.locations.push({ zip, name, weatherData });
+    state.locations.push({ zip, name, weatherData, viewMode: 'D' });
     state.activeZip = zip;
     
     if (shouldSave) saveToStorage();
