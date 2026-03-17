@@ -156,7 +156,7 @@ header {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border-radius: var(--radius);
-    padding: 30px;
+    padding: 20px; /* Reduced from 30px */
     box-shadow: var(--shadow);
     text-align: center;
     position: relative;
@@ -214,14 +214,14 @@ header {
 .location-name {
     font-size: 1.8rem;
     font-weight: 700;
-    margin-bottom: 4px;
+    margin-bottom: 0px; /* Zeroed */
     color: var(--text-main);
 }
 
 .location-sub {
     font-size: 0.95rem;
     color: var(--text-muted);
-    margin-bottom: 25px;
+    margin-bottom: 0px; /* Zeroed */
     font-weight: 500;
 }
 
@@ -230,7 +230,7 @@ header {
     align-items: center;
     justify-content: center;
     gap: 15px;
-    margin-bottom: 10px;
+    margin-bottom: 0px; /* Zeroed */
 }
 
 .current-temp {
@@ -248,27 +248,27 @@ header {
     font-size: 1.1rem;
     color: var(--text-main);
     font-weight: 500;
-    margin-bottom: 25px;
+    margin-bottom: 0px; /* Zeroed */
 }
 
 hr {
     border: none;
     border-top: 1px solid rgba(0,0,0,0.05);
-    margin-bottom: 25px;
+    margin: 4px 0; /* Tightest balance */
 }
 
 /* Forecast Views */
 .view-container {
-    min-height: 180px;
+    min-height: 142px; /* Tightened further to match a zero-margin Daily list */
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
 }
 
 .forecast-list {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 0px; /* Eliminated gap */
 }
 
 .forecast-row {
@@ -276,7 +276,7 @@ hr {
     grid-template-columns: 80px 50px 1fr 1fr;
     align-items: center;
     text-align: left;
-    padding: 8px 12px;
+    padding: 1px 12px; /* Absolute minimum padding */
     background: rgba(0,0,0,0.02);
     border-radius: 10px;
 }
@@ -331,7 +331,12 @@ hr {
 .hourly-cell {
     padding: 10px 0;
     background: rgba(255,255,255,0.3);
-    border-bottom: 1px solid rgba(0,0,0,0.03);
+    border-bottom: 1px solid rgba(0,0,0,0.08); /* Darker line for better visibility */
+}
+
+/* Remove border from the last row (cells 25-32) */
+.hourly-cell:nth-child(n+25) {
+    border-bottom: none;
 }
 
 .hourly-cell:nth-child(8n) {
